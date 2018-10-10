@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="main.css">
+
+    <title>Ledgy</title>
+  </head>
+  <body>
+    <div id="accountButtonContainer" class="btn-group btn-group-toggle acount-selector" data-toggle="buttons">
+      <label class="btn btn-secondary active" onclick="selectAccount('spend');">
+        <input type="radio" name="account" id="account1" autocomplete="off" checked> Spend
+      </label>
+      <label class="btn btn-secondary" onclick="selectAccount('saved');">
+        <input type="radio" name="account" id="account2" autocomplete="off"> Saved
+      </label>
+    </div>
+
+    <div class="balance-line">
+      <span>Balance: </span>
+      <span id="balanceSpan">$1034.00</span>
+    </div>
+
+    <div class="loader">
+      <svg viewBox="0 0 32 32" width="32" height="32">
+        <circle id="spinner" cx="16" cy="16" r="14" fill="none"></circle>
+      </svg>
+    </div>
+
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" id="trans-form-tab" data-toggle="tab" href="#transForm" role="tab" aria-controls="trans-form" aria-selected="true">
+          Add
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link " id="withdrawals-tab" data-toggle="tab" href="#withdrawals" role="tab" aria-controls="withdrawals" aria-selected="false">
+          Withdrawals
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="deposits-tab" data-toggle="tab" href="#deposits" role="tab" aria-controls="deposits" aria-selected="false">
+          Deposits
+        </a>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="transactionsTabContent">
+      <div class="tab-pane fade show active" id="transForm" role="tabpanel" aria-labelledby="trans-form-tab">
+        <div class="transaction-form">
+          <div id="transactionForm1" class="transactionFormPage">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">$</div>
+              </div>
+              <input type="number" class="form-control" id="amountInput" placeholder="Transaction amount">
+            </div>
+
+            <div class="btn-group btn-group-toggle transaction-type-selector" data-toggle="buttons">
+              <label class="btn btn-secondary" onclick="showTransactionFormPage(2);">
+                <input type="radio" name="transType" id="transTypeCredit" autocomplete="off" value="credit"> Deposit
+              </label>
+              <label class="btn btn-secondary" onclick="showTransactionFormPage(2);">
+                <input type="radio" name="transType" id="transTypeDebit" autocomplete="off" value="debit"> Withdrawal
+              </label>
+            </div>
+          </div>
+          <div id="transactionForm2" class="transactionFormPage" style="display: none;">
+            <input type="text" class="form-control" id="descriptionInput" placeholder="Transaction description">
+            <div class="btn-group mr-2" role="group" aria-label="First group">
+              <button type="button" class="btn btn-secondary" onclick="showTransactionFormPage(1);">Back</button>
+              <button type="button" class="btn btn-primary transaction-button" onclick="sendTransaction();">Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="withdrawals" role="tabpanel" aria-labelledby="withdrawals-tab">
+        <table class="table table-striped transactionTable">
+          <thead>
+            <tr>
+              <th scope="col" class="transaction-amount">Amount</th>
+              <th scope="col" class="transaction-description">Description</th>
+            </tr>
+          </thead>
+          <tbody id="withdrawalsTableBody">
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tab-pane fade" id="deposits" role="tabpanel" aria-labelledby="deposits-tab">
+        <table class="table table-striped transactionTable">
+          <thead>
+            <tr>
+              <th scope="col" class="transaction-amount">Amount</th>
+              <th scope="col" class="transaction-description">Description</th>
+            </tr>
+          </thead>
+          <tbody id="depositsTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script src="jquery-dateformat.min.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>

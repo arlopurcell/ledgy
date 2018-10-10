@@ -1,0 +1,16 @@
+.transactionTable td {
+    font-size: 0.75em;
+    max-height: 1em;
+    padding: 0.25rem;
+    white-space: nowrap; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.transaction-amount {
+    width: 25%;
+}
+
+.transactionTable {
+    table-layout: fixed;
+}
