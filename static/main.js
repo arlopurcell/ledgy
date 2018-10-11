@@ -139,4 +139,9 @@ window.onload = function() {
     reloadTransactions();
     $("#amountInput").focus();
 
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+                 .register('./service-worker.js')
+                 .then(function() { console.log('Service Worker Registered'); });
+    }
 };
