@@ -1,0 +1,14 @@
+[Unit]
+Description=Ledgy - stupid simple ledger web app
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/crates/directory
+Environment="ROCKET_ENV=prod"
+Environment="ROCKET_LOG=critical"
+ExecStart=/path/to/crates/directory/target/release/ledgy
+
+[Install]
+WantedBy=multi-user.target
+
