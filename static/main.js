@@ -24,11 +24,19 @@ function sendTransaction() {
 
     // disable buttons
     $(".transactionButton").prop("disabled", true);
+    
+    var auth = window.localStorage.getItem("authorization");
+    if (!auth) {
+        $("#credsModal").modal();
+        return
+    }
+    
     // ajax do transaction
     fetch(API_BASE_URL + currentAccount + "/" + type, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            "Authorization": auth,
         },
         body: JSON.stringify({amount: Math.trunc(amount * 100), description: description}),
     }).then(function(response) {
@@ -61,11 +69,19 @@ function showTransactionError() {
 
 function reloadTransactions() {
     $(".loader").show();
+
+    var auth = window.localStorage.getItem("authorization");
+    if (!auth) {
+        $("#credsModal").modal();
+        return
+    }
+
     // ajax call
     fetch(API_BASE_URL + currentAccount, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            "Authorization": auth,
         },
     }).then(function(response) {
         response.json().then(function(data) {
@@ -105,10 +121,17 @@ function reloadTransactions() {
 }
 
 function reloadAccounts() {
+    var auth = window.localStorage.getItem("authorization");
+    if (!auth) {
+        $("#credsModal").modal();
+        return
+    }
+
     fetch(API_BASE_URL + "list", {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            "Authorization": auth,
         },
     }).then(function(response) {
         response.json().then(function(data) {
@@ -144,6 +167,17 @@ function updateAccountsDisplay() {
         }
     });
     // TODO add "+" button
+}
+
+function saveCredentials() {
+    var username = $("#usernameInput").val();
+    var password = $("#passwordInput").val();
+    $("#usernameInput").val("");
+    $("#passwordInput").val("");
+    window.localStorage.setItem("authorization", window.btoa(`Basic ${username}:${password}`));
+    // TODO close modal if necessary
+    reloadAccounts();
+    reloadTransactions();
 }
 
 window.onload = function() {
