@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000/ledger/";
+const API_BASE_URL = "/api/";
 var currentAccount = "spend";
 
 function selectAccount(account) {
@@ -20,9 +20,7 @@ function showTransactionFormPage(page) {
 function sendTransaction() {
     var type = $("input[name='transType']:checked").val();
     var amount = $("#amountInput").val();
-    $("#amountInput").val("");
     var description = $("#descriptionInput").val();
-    $("#descriptionInput").val("");
 
     // disable buttons
     $(".transactionButton").prop("disabled", true);
@@ -34,10 +32,31 @@ function sendTransaction() {
         },
         body: JSON.stringify({amount: Math.trunc(amount * 100), description: description}),
     }).then(function(response) {
-        reloadTransactions();
-        $(".transactionButton").prop("disabled", false);
+        if (response.ok) {
+            reloadTransactions();
+            $("#amountInput").val("");
+            $("#descriptionInput").val("");
+            showTransactionFormPage(1);
+            $(".transactionButton").prop("disabled", false);
+        } else {
+            showTransactionError();
+        }
+    }).catch(function(error) {
+        showTransactionError();
     });
-    showTransactionFormPage(1);
+}
+
+function showTransactionError() {
+    $("#alert-container").empty();
+    $("#alert-container").html(`
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            Failed to submit transaction. Please try again.
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    `);
+    $(".transactionButton").prop("disabled", false);
 }
 
 function reloadTransactions() {

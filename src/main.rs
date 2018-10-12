@@ -9,6 +9,8 @@ extern crate time;
 use rusqlite::Connection;
 use rocket_contrib::Json;
 use rocket::response::NamedFile;
+use rocket::request::State;
+use rocket::fairing::AdHoc;
 
 use std::path::{Path, PathBuf};
 
@@ -39,22 +41,17 @@ struct PagingArgs {
     per_page: Option<usize>,
 }
 
-#[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
-}
-
 #[post("/<ledger>/init")]
-fn init(ledger: String) -> &'static str {
-    let mut path_buf = get_path();
+fn init(ledger: String, data_dir: State<DataDir>) -> &'static str {
+    let mut path_buf = PathBuf::from(&data_dir.0);
     path_buf.push(ledger);
     do_init(path_buf.as_path());
     "ok"
 }
 
 #[post("/<ledger>/credit", data="<trans>")]
-fn credit(ledger: String, trans: Json<TransRequest>) -> &'static str {
-    let mut path_buf = get_path();
+fn credit(ledger: String, trans: Json<TransRequest>, data_dir: State<DataDir>) -> &'static str {
+    let mut path_buf = PathBuf::from(&data_dir.0);
     path_buf.push(ledger);
     let amount = trans.0.amount;
     do_transaction(path_buf.as_path(), amount, &trans.0.description);
@@ -62,8 +59,8 @@ fn credit(ledger: String, trans: Json<TransRequest>) -> &'static str {
 }
 
 #[post("/<ledger>/debit", data="<trans>")]
-fn debit(ledger: String, trans: Json<TransRequest>) -> &'static str {
-    let mut path_buf = get_path();
+fn debit(ledger: String, trans: Json<TransRequest>, data_dir: State<DataDir>) -> &'static str {
+    let mut path_buf = PathBuf::from(&data_dir.0);
     path_buf.push(ledger);
     let amount = trans.0.amount * -1;
     do_transaction(path_buf.as_path(), amount, &trans.0.description);
@@ -71,13 +68,13 @@ fn debit(ledger: String, trans: Json<TransRequest>) -> &'static str {
 }
 
 #[get("/<ledger>")]
-fn get_ledger(ledger: String) -> Json<TransList> {
-    get_ledger_paged(ledger, PagingArgs{page: None, per_page: None})
+fn get_ledger(ledger: String, data_dir: State<DataDir>) -> Json<TransList> {
+    get_ledger_paged(ledger, PagingArgs{page: None, per_page: None}, data_dir)
 }
 
 #[get("/<ledger>?<paging>")]
-fn get_ledger_paged(ledger: String, paging: PagingArgs) -> Json<TransList> {
-    let mut path_buf = get_path();
+fn get_ledger_paged(ledger: String, paging: PagingArgs, data_dir: State<DataDir>) -> Json<TransList> {
+    let mut path_buf = PathBuf::from(&data_dir.0);
     path_buf.push(ledger);
     let path = path_buf.as_path();
     let conn = Connection::open(path).unwrap();
@@ -124,8 +121,8 @@ struct LedgerList {
 }
 
 #[get("/list")]
-fn list_ledgers() -> Json<LedgerList> {
-    let dir = get_path();
+fn list_ledgers(data_dir: State<DataDir>) -> Json<LedgerList> {
+    let dir = PathBuf::from(&data_dir.0);
     let ledgers = dir.read_dir().unwrap().filter_map(|entry| {
         match entry {
             Ok(file) => file.file_name().into_string().ok(),
@@ -136,27 +133,47 @@ fn list_ledgers() -> Json<LedgerList> {
 }
 
 #[get("/static/<file..>")]
-fn static_files(file: PathBuf) -> Option<NamedFile> {
+fn static_file(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
 }
 
-fn get_path() -> PathBuf {
-    // TODO get real path
-    PathBuf::from("ledgers")
+#[get("/")]
+fn index() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/index.html")).ok()
 }
 
+#[get("/service-worker.js")]
+fn service_worker() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/service-worker.js")).ok()
+}
+
+struct DataDir(String);
+
 fn main() {
-    rocket::ignite().mount("/ledger", 
+    rocket::ignite()
+        .mount("/", 
             routes![
-                index, 
+                static_file,
+                index,
+                service_worker,
+            ])
+        .mount("/api",
+            routes![
                 init,
                 credit, 
                 debit,
                 get_ledger, 
                 get_ledger_paged, 
                 list_ledgers,
-                static_files,
-            ]).launch();
+               ])
+        .attach(AdHoc::on_attach(|rocket| {
+            let assets_dir = rocket.config()
+                .get_str("data_dir")
+                .unwrap_or("ledgers/")
+                .to_string();
+            Ok(rocket.manage(DataDir(assets_dir)))
+        }))
+        .launch();
 }
 
 fn do_init(path: &Path) {

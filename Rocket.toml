@@ -1,0 +1,14 @@
+[development]
+address = "localhost"
+data_dir = "ledgers/"
+
+[staging]
+address = "0.0.0.0"
+data_dir = "/etc/ledgy/data/ledgers/"
+
+[production]
+address = "0.0.0.0"
+data_dir = "/etc/ledgy/data/ledgers/"
+
+[global]
+port = 8181
