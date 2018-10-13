@@ -174,7 +174,7 @@ function saveCredentials() {
     var password = $("#passwordInput").val();
     $("#usernameInput").val("");
     $("#passwordInput").val("");
-    window.localStorage.setItem("authorization", window.btoa(`Basic ${username}:${password}`));
+    window.localStorage.setItem("authorization", "Basic " + window.btoa(`${username}:${password}`));
     // TODO close modal if necessary
     reloadAccounts();
     reloadTransactions();
