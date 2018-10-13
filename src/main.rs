@@ -123,12 +123,13 @@ struct LedgerList {
 #[get("/list")]
 fn list_ledgers(data_dir: State<DataDir>) -> Json<LedgerList> {
     let dir = PathBuf::from(&data_dir.0);
-    let ledgers = dir.read_dir().unwrap().filter_map(|entry| {
+    let mut ledgers: Vec<String> = dir.read_dir().unwrap().filter_map(|entry| {
         match entry {
             Ok(file) => file.file_name().into_string().ok(),
             _ => None
         }
     }).collect();
+    ledgers.sort_unstable();
     Json(LedgerList { ledgers: ledgers })
 }
 
