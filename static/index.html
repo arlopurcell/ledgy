@@ -15,14 +15,21 @@
     <title>Ledgy</title>
   </head>
   <body>
-    <div id="accountButtonContainer" class="btn-group btn-group-toggle acount-selector" data-toggle="buttons">
-      <label class="btn btn-secondary active" onclick="selectAccount('spend');">
-        <input type="radio" name="account" id="account1" autocomplete="off" checked> Spend
-      </label>
-      <label class="btn btn-secondary" onclick="selectAccount('saved');">
-        <input type="radio" name="account" id="account2" autocomplete="off"> Saved
-      </label>
-    </div>
+
+    <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups">
+      <div id="accountButtonContainer" class="btn-group btn-group-toggle acount-selector" data-toggle="buttons">
+        <label class="btn btn-secondary active" onclick="selectAccount('spend');">
+          <input type="radio" name="account" id="account1" autocomplete="off" checked> Spend
+        </label>
+        <label class="btn btn-secondary" onclick="selectAccount('saved');">
+          <input type="radio" name="account" id="account2" autocomplete="off"> Saved
+        </label>
+      </div>
+
+      <div class="btn-group" role="group" aria-label="Enter Credentials">
+        <button type="button" class="btn btn-secondary" onclick="$('#credsModal').modal();">Enter Credentials</button>
+      </div>
+      </div>
 
     <div class="balance-line">
       <span>Balance: </span>
@@ -139,3 +146,4 @@
     <script src="/static/main.js"></script>
   </body>
 </html>
+
