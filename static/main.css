@@ -14,3 +14,23 @@
 .transactionTable {
     table-layout: fixed;
 }
+
+.keypad-container {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+    height: 130vw;
+    align-content: space-around;
+}
+
+.keypad-button-third {
+    width: 26vw;
+    height: 26vw;
+    font-size: 2em;
+}
+
+.keypad-button-half {
+    width: 42vw;
+    height: 15vw;
+    font-size: 1.5em;
+}

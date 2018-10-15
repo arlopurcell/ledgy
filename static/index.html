@@ -33,7 +33,7 @@
 
     <div class="balance-line">
       <span>Balance: </span>
-      <span id="balanceSpan">$1034.00</span>
+      <span id="balanceSpan">Loading...</span>
     </div>
 
     <div class="loader">
@@ -49,12 +49,12 @@
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link " id="withdrawals-tab" data-toggle="tab" href="#withdrawals" role="tab" aria-controls="withdrawals" aria-selected="false">
+        <a class="nav-link " id="debits-tab" data-toggle="tab" href="#debits" role="tab" aria-controls="debits" aria-selected="false">
           Withdrawals
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" id="deposits-tab" data-toggle="tab" href="#deposits" role="tab" aria-controls="deposits" aria-selected="false">
+        <a class="nav-link" id="credits-tab" data-toggle="tab" href="#credits" role="tab" aria-controls="credits" aria-selected="false">
           Deposits
         </a>
       </li>
@@ -89,16 +89,35 @@
               <div class="input-group-prepend">
                 <div class="input-group-text">$</div>
               </div>
-              <input type="number" class="form-control" id="amountInput" placeholder="Transaction amount">
+              <input type="text" class="form-control" id="amountInput" placeholder="Transaction amount">
             </div>
 
-            <div class="btn-group btn-group-toggle transaction-type-selector" data-toggle="buttons">
+            <div class="btn-group btn-group-toggle transaction-type-selector d-none d-sm-block" data-toggle="buttons">
               <label class="btn btn-secondary" onclick="showTransactionFormPage(2);">
-                <input type="radio" name="transType" id="transTypeCredit" autocomplete="off" value="credit"> Deposit
+                <input type="radio" name="transType" autocomplete="off" value="credit"> Deposit
               </label>
               <label class="btn btn-secondary" onclick="showTransactionFormPage(2);">
-                <input type="radio" name="transType" id="transTypeDebit" autocomplete="off" value="debit"> Withdrawal
+                <input type="radio" name="transType" autocomplete="off" value="debit"> Withdrawal
               </label>
+            </div>
+
+            <div class="visible-xs-block keypad-container d-xs-block">
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('1');">1</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('2');">2</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('3');">3</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('4');">4</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('5');">5</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('6');">6</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('7');">7</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('8');">8</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('9');">9</button>
+
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('.');">.</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadType('0');">0</button>
+              <button class="btn btn-info keypad-button keypad-button-third" onclick="keypadDelete();">⌫</button>
+              
+              <button class="btn btn-info keypad-button keypad-button-half" onclick="keypadEnter('credit');">Deposit</button>
+              <button class="btn btn-info keypad-button keypad-button-half" onclick="keypadEnter('debit');">Withdrawal</button>
             </div>
           </div>
           <div id="transactionForm2" class="transactionFormPage" style="display: none;">
@@ -111,7 +130,7 @@
         </div>
       </div>
 
-      <div class="tab-pane fade" id="withdrawals" role="tabpanel" aria-labelledby="withdrawals-tab">
+      <div class="tab-pane fade" id="debits" role="tabpanel" aria-labelledby="debits-tab">
         <table class="table table-striped transactionTable">
           <thead>
             <tr>
@@ -124,7 +143,7 @@
         </table>
       </div>
 
-      <div class="tab-pane fade" id="deposits" role="tabpanel" aria-labelledby="deposits-tab">
+      <div class="tab-pane fade" id="credits" role="tabpanel" aria-labelledby="credits-tab">
         <table class="table table-striped transactionTable">
           <thead>
             <tr>

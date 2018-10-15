@@ -41,6 +41,7 @@ function sendTransaction() {
         body: JSON.stringify({amount: Math.trunc(amount * 100), description: description}),
     }).then(function(response) {
         if (response.ok) {
+            $(`#${type}s-tab`).tab("show");
             reloadTransactions();
             $("#amountInput").val("");
             $("#descriptionInput").val("");
@@ -178,6 +179,23 @@ function saveCredentials() {
     // TODO close modal if necessary
     reloadAccounts();
     reloadTransactions();
+}
+
+function keypadType(input) {
+    $("#amountInput").val($("#amountInput").val() + input);
+}
+
+function keypadDelete() {
+    var amountInput = $("#amountInput");
+    var current = amountInput.val();
+    if (current.length > 0) {
+        amountInput.val(current.substring(0, current.length - 1));
+    }
+}
+
+function keypadEnter(transType) {
+    $(`input[name='transType'][value='${transType}']`).prop("checked", true);
+    showTransactionFormPage(2);
 }
 
 window.onload = function() {

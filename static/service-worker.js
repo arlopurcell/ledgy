@@ -1,4 +1,4 @@
-var cacheName = 'ledgyPWA-0.1.1';
+var cacheName = 'ledgyPWA-0.1.2';
 var filesToCache = [
   "/",
   "/static/index.html",
@@ -12,9 +12,6 @@ var filesToCache = [
   "/static/external/jquery-3.3.1.slim.min.js",
   "/static/external/jquery-dateformat.min.js",
   "/static/external/popper.min.js",
-];
-
-var externalFilesToCache = [
 ];
 
 self.addEventListener('install', function(e) {
