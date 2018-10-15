@@ -80,7 +80,7 @@ fn get_ledger_paged(ledger: String, paging: PagingArgs, data_dir: State<DataDir>
     let conn = Connection::open(path).unwrap();
 
     let page = paging.page.unwrap_or(0);
-    let per_page = paging.per_page.unwrap_or(10);
+    let per_page = paging.per_page.unwrap_or(20);
 
     let mut debit_stmt = conn.prepare(
         "SELECT amount, balance, description, time_created FROM ledger WHERE amount < 0 ORDER BY time_created DESC"

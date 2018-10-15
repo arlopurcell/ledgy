@@ -182,7 +182,16 @@ function saveCredentials() {
 }
 
 function keypadType(input) {
-    $("#amountInput").val($("#amountInput").val() + input);
+    var amountInput = $("#amountInput");
+    var current = amountInput.val();
+    if (input == ".") {
+        if (current.includes(".")) {
+            return;
+        }
+    } else if (current.charAt(current.length - 3) == ".") {
+        return;
+    }
+    amountInput.val(amountInput.val() + input);
 }
 
 function keypadDelete() {
