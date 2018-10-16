@@ -39,12 +39,13 @@
     font-size: 1.5em;
 }
 
-.transactionTable tbody{
+.transactionTable tbody {
     display:block;
     overflow:auto;
     height: calc(100vh - 160px);
     width:100%;
 }
-.transactionTable thead tr{
+
+.transactionTable thead tr {
     display:block;
 }

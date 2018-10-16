@@ -57,6 +57,10 @@
         <a class="nav-link" id="credits-tab" data-toggle="tab" href="#credits" role="tab" aria-controls="credits" aria-selected="false">
           Deposits
         </a>
+      <li class="nav-item">
+        <button class="nav-link btn btn-outline-danger hidden" id="edit-cancel" onclick="clearTransactionForm();">
+          Cancel
+        </button>
       </li>
     </ul>
 
@@ -84,6 +88,7 @@
     <div class="tab-content" id="transactionsTabContent">
       <div class="tab-pane fade show active" id="transForm" role="tabpanel" aria-labelledby="trans-form-tab">
         <div class="transaction-form">
+          <input type="hidden" id="rowidInput" value="">
           <div id="transactionForm1" class="transactionFormPage">
             <div class="input-group">
               <div class="input-group-prepend">
@@ -161,6 +166,7 @@
     <script src="/static/external/jquery-3.3.1.slim.min.js"></script>
     <script src="/static/external/popper.min.js"></script>
     <script src="/static/external/bootstrap.min.js"></script>
+
     <script src="/static/external/jquery-dateformat.min.js"></script>
     <script src="/static/main.js"></script>
   </body>

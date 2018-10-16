@@ -22,6 +22,7 @@ struct TransRequest {
 
 #[derive(Serialize)]
 struct TransResponse {
+    rowid: i32,
     amount: i32,
     balance: i32,
     description: String,
@@ -67,6 +68,32 @@ fn debit(ledger: String, trans: Json<TransRequest>, data_dir: State<DataDir>) ->
     "ok"
 }
 
+#[post("/<ledger>/edit/<rowid>", data="<trans>")]
+fn edit_trans(ledger: String, rowid: i32, trans: Json<TransRequest>, data_dir: State<DataDir>) -> &'static str {
+    let mut path_buf = PathBuf::from(&data_dir.0);
+    path_buf.push(ledger);
+    let path = path_buf.as_path();
+    let conn = Connection::open(path).unwrap();
+    // TODO do in transaction
+    let mut stmt = conn.prepare(&format!("SELECT amount FROM ledger WHERE rowid = {}", rowid)).unwrap();
+    let mut amount_iter = stmt.query_map(&[], |row| {
+        row.get(0)
+    }).unwrap();
+    let old_amount = match amount_iter.next() {
+        Some(Ok(amount)) => amount,
+        _ => 0,
+    };
+    let diff = old_amount - trans.0.amount;
+
+    conn.execute("UPDATE ledger SET amount = ?1, description = ?2 WHERE rowid = ?3",
+                 &[&trans.0.amount, &trans.0.description, &rowid]).unwrap();
+
+    conn.execute("UPDATE ledger SET balance = balance - ?1 WHERE rowid >= ?2",
+                &[&diff, &rowid]).unwrap();
+    
+    "ok"
+}
+
 #[get("/<ledger>")]
 fn get_ledger(ledger: String, data_dir: State<DataDir>) -> Json<TransList> {
     get_ledger_paged(ledger, PagingArgs{page: None, per_page: None}, data_dir)
@@ -83,7 +110,7 @@ fn get_ledger_paged(ledger: String, paging: PagingArgs, data_dir: State<DataDir>
     let per_page = paging.per_page.unwrap_or(20);
 
     let mut debit_stmt = conn.prepare(
-        "SELECT amount, balance, description, time_created FROM ledger WHERE amount < 0 ORDER BY time_created DESC"
+        "SELECT amount, balance, description, time_created, rowid FROM ledger WHERE amount < 0 ORDER BY time_created DESC"
     ).unwrap();
     let debits = debit_stmt.query_map(&[], |row| {
         TransResponse {
@@ -91,11 +118,12 @@ fn get_ledger_paged(ledger: String, paging: PagingArgs, data_dir: State<DataDir>
             balance: row.get(1),
             description: row.get(2),
             time: row.get(3),
+            rowid: row.get(4),
         }
     }).unwrap().map(|trans_result| {trans_result.unwrap()}).skip(page * per_page).take(per_page);
 
     let mut credit_stmt = conn.prepare(
-        "SELECT amount, balance, description, time_created FROM ledger WHERE amount > 0 ORDER BY time_created DESC"
+        "SELECT amount, balance, description, time_created, rowid FROM ledger WHERE amount > 0 ORDER BY time_created DESC"
     ).unwrap();
     let credits = credit_stmt.query_map(&[], |row| {
         TransResponse {
@@ -103,6 +131,7 @@ fn get_ledger_paged(ledger: String, paging: PagingArgs, data_dir: State<DataDir>
             balance: row.get(1),
             description: row.get(2),
             time: row.get(3),
+            rowid: row.get(4),
         }
     }).unwrap().map(|trans_result| {trans_result.unwrap()}).skip(page * per_page).take(per_page);
 
@@ -166,6 +195,7 @@ fn main() {
                 get_ledger, 
                 get_ledger_paged, 
                 list_ledgers,
+                edit_trans,
                ])
         .attach(AdHoc::on_attach(|rocket| {
             let assets_dir = rocket.config()

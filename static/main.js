@@ -4,22 +4,40 @@ var currentAccount = "spend";
 function selectAccount(account) {
     currentAccount = account;
     reloadTransactions();
+    clearTransactionForm();
     showTransactionFormPage(1);
 }
 
 function showTransactionFormPage(page) {
     $(".transactionFormPage").hide();
     $("#transactionForm" + page).show();
+    var input;
     if (page == 1) {
-        $("#amountInput").focus();
+        input = $("#amountInput");
     } else if (page == 2) {
-        $("#descriptionInput").focus();
+        input = $("#descriptionInput");
     }
+    input.focus();
+    input.select();
+}
+
+function clearTransactionForm() {
+    $("#amountInput").val("");
+    $("#amountInput").prop("placeholder", "Transaction amount");
+    $("#rowidInput").val("");
+    $("#descriptionInput").val("");
+    $("#edit-cancel").hide();
+    $("#debits-tab").show();
+    $("#credits-tab").show();
 }
 
 function sendTransaction() {
+    var rowid = $("#rowidInput").val();
     var type = $("input[name='transType']:checked").val();
     var amount = $("#amountInput").val();
+    if (rowid && type == "debit") {
+        amount = amount * -1;
+    }
     var description = $("#descriptionInput").val();
 
     // disable buttons
@@ -32,7 +50,13 @@ function sendTransaction() {
     }
     
     // ajax do transaction
-    fetch(API_BASE_URL + currentAccount + "/" + type, {
+    var api_url;
+    if (rowid) {
+        api_url = API_BASE_URL + currentAccount + "/edit/" + rowid;
+    } else {
+        api_url = API_BASE_URL + currentAccount + "/" + type;
+    }
+    fetch(api_url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -43,8 +67,7 @@ function sendTransaction() {
         if (response.ok) {
             $(`#${type}s-tab`).tab("show");
             reloadTransactions();
-            $("#amountInput").val("");
-            $("#descriptionInput").val("");
+            clearTransactionForm();
             showTransactionFormPage(1);
             $(".transactionButton").prop("disabled", false);
         } else {
@@ -88,13 +111,32 @@ function reloadTransactions() {
         response.json().then(function(data) {
             // update balance
             $("#balanceSpan").html("$" + (data.balance / 100).toFixed(2));
-            //$("#balanceSpan").html("$" + data.balance.slice(0, -2) + "." + data.balance.slice(-2));
+
             // replace contents of $("#transactionContainer)
             var container = $("#depositsTableBody");
             container.empty();
             data.credits.forEach(function(transaction) {
-                var row = jQuery('<tr/>');
+                var row = jQuery('<tr/>', {
+                    id: `transaction-id-${transaction.rowid}`,
+                });
                 row.appendTo(container);
+                row.popover({
+                    placement: "bottom",
+                    html: true,
+                    title: "Edit Transaction?",
+                    content: `
+                        <button 
+                            class="btn btn-small btn-secondary" 
+                            onclick="$('#transaction-id-${transaction.rowid}').popover('hide');">
+                            No
+                        </button>
+                        <button 
+                            class="btn btn-small btn-primary" 
+                            onclick="editTransaction(${transaction.rowid}, ${transaction.amount}, '${transaction.description}');">
+                            Yes
+                        </button>
+                    `
+                });
                 var amount_part = jQuery('<td/>', {class: "transaction-amount"}); 
                 amount_part.appendTo(row);
                 amount_part.text("$" + (transaction.amount / 100).toFixed(2));
@@ -106,8 +148,27 @@ function reloadTransactions() {
             container = $("#withdrawalsTableBody");
             container.empty();
             data.debits.forEach(function(transaction) {
-                var row = jQuery('<tr/>');
+                var row = jQuery('<tr/>', {
+                    id: `transaction-id-${transaction.rowid}`,
+                });
                 row.appendTo(container);
+                row.popover({
+                    placement: "bottom",
+                    html: true,
+                    title: "Edit Transaction?",
+                    content: `
+                        <button 
+                            class="btn btn-small btn-secondary" 
+                            onclick="$('#transaction-id-${transaction.rowid}').popover('hide');">
+                            No
+                        </button>
+                        <button 
+                            class="btn btn-small btn-primary" 
+                            onclick="editTransaction(${transaction.rowid}, ${transaction.amount}, '${transaction.description}');">
+                            Yes
+                        </button>
+                    `
+                });
                 var amount_part = jQuery('<td/>', {class: "transaction-amount"}); 
                 amount_part.appendTo(row);
                 var amount = transaction.amount * -1;
@@ -119,6 +180,19 @@ function reloadTransactions() {
             $(".loader").hide();
         });
     });
+}
+
+function editTransaction(rowid, old_amount, old_description) {
+    $("#transaction-id-" + rowid).popover('hide');
+    $("#amountInput").val("");
+    $("#amountInput").prop("placeholder", (Math.abs(old_amount) / 100).toFixed(2));
+    $("#rowidInput").val(rowid);
+    $("#descriptionInput").val(old_description);
+    $("#trans-form-tab").tab("show");
+    $("#edit-cancel").show();
+    $("#debits-tab").hide();
+    $("#credits-tab").hide();
+    showTransactionFormPage(1);
 }
 
 function reloadAccounts() {
@@ -176,7 +250,6 @@ function saveCredentials() {
     $("#usernameInput").val("");
     $("#passwordInput").val("");
     window.localStorage.setItem("authorization", "Basic " + window.btoa(`${username}:${password}`));
-    // TODO close modal if necessary
     reloadAccounts();
     reloadTransactions();
 }
@@ -213,6 +286,7 @@ window.onload = function() {
         accounts = ["spend,saved"];
         window.localStorage.setItem("accounts", accounts);
     }
+    $("#edit-cancel").hide();
     updateAccountsDisplay();
 
     reloadAccounts();
