@@ -73,23 +73,20 @@ fn edit_trans(ledger: String, rowid: i32, trans: Json<TransRequest>, data_dir: S
     let mut path_buf = PathBuf::from(&data_dir.0);
     path_buf.push(ledger);
     let path = path_buf.as_path();
-    let conn = Connection::open(path).unwrap();
-    // TODO do in transaction
-    let mut stmt = conn.prepare(&format!("SELECT amount FROM ledger WHERE rowid = {}", rowid)).unwrap();
-    let mut amount_iter = stmt.query_map(&[], |row| {
+    let mut conn = Connection::open(path).unwrap();
+    let tx = conn.transaction().unwrap();
+    let old_amount: i32 = tx.query_row(&format!("SELECT amount FROM ledger WHERE rowid = {}", rowid), &[], |row| {
         row.get(0)
     }).unwrap();
-    let old_amount = match amount_iter.next() {
-        Some(Ok(amount)) => amount,
-        _ => 0,
-    };
     let diff = old_amount - trans.0.amount;
 
-    conn.execute("UPDATE ledger SET amount = ?1, description = ?2 WHERE rowid = ?3",
+    tx.execute("UPDATE ledger SET amount = ?1, description = ?2 WHERE rowid = ?3",
                  &[&trans.0.amount, &trans.0.description, &rowid]).unwrap();
 
-    conn.execute("UPDATE ledger SET balance = balance - ?1 WHERE rowid >= ?2",
+    tx.execute("UPDATE ledger SET balance = balance - ?1 WHERE rowid >= ?2",
                 &[&diff, &rowid]).unwrap();
+
+    tx.commit().unwrap();
     
     "ok"
 }
@@ -227,12 +224,7 @@ fn do_transaction(path: &Path, amount: i32, description: &str) {
 }
 
 fn get_balance(conn: &Connection) -> i32 {
-    let mut stmt = conn.prepare("SELECT balance FROM ledger ORDER BY time_created DESC LIMIT 1").unwrap();
-    let mut balance_iter = stmt.query_map(&[], |row| {
+    conn.query_row("SELECT balance FROM ledger ORDER BY time_created DESC LIMIT 1", &[], |row| {
         row.get(0)
-    }).unwrap();
-    match balance_iter.next() {
-        Some(Ok(balance)) => balance,
-        _ => 0,
-    }
+    }).unwrap_or(0)
 }
