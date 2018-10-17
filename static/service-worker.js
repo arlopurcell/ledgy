@@ -1,4 +1,4 @@
-var cacheName = 'ledgyPWA-0.1.2';
+var cacheName = 'ledgyPWA-0.1.4';
 var filesToCache = [
   "/",
   "/static/index.html",
