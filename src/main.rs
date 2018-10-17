@@ -6,13 +6,16 @@ extern crate rocket_contrib;
 extern crate rusqlite;
 extern crate time;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OpenFlags};
 use rocket_contrib::Json;
 use rocket::response::NamedFile;
 use rocket::request::State;
 use rocket::fairing::AdHoc;
 
 use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::sync::RwLock;
+
 
 #[derive(Deserialize)]
 struct TransRequest {
@@ -43,37 +46,44 @@ struct PagingArgs {
 }
 
 #[post("/<ledger>/init")]
-fn init(ledger: String, data_dir: State<DataDir>) -> &'static str {
+fn init(ledger: String, data_dir: State<DataDir>, connections: State<LedgerConnections>) -> &'static str {
     let mut path_buf = PathBuf::from(&data_dir.0);
-    path_buf.push(ledger);
-    do_init(path_buf.as_path());
+    path_buf.push(ledger.clone());
+
+    let lock = RwLock::new(ConnectionFactory{path: path_buf});
+    let conn = lock.write().unwrap().get_write();
+
+    conn.execute("CREATE TABLE ledger (
+                  amount       INTEGER NOT NULL,
+                  balance      INTEGER NOT NULL,
+                  description  TEXT NOT NULL,
+                  time_created INTEGER NOT NULL
+                  )", &[]).unwrap();
+    conn.execute("CREATE INDEX time_index on ledger(time_created)", &[]).unwrap();
+    
+    connections.map_lock.write().unwrap().insert(ledger, lock);
     "ok"
 }
 
 #[post("/<ledger>/credit", data="<trans>")]
-fn credit(ledger: String, trans: Json<TransRequest>, data_dir: State<DataDir>) -> &'static str {
-    let mut path_buf = PathBuf::from(&data_dir.0);
-    path_buf.push(ledger);
+fn credit(ledger: String, trans: Json<TransRequest>, connections: State<LedgerConnections>) -> &'static str {
     let amount = trans.0.amount;
-    do_transaction(path_buf.as_path(), amount, &trans.0.description);
+    let conn = connections.get_write(&ledger);
+    do_transaction(conn, amount, &trans.0.description);
     "ok"
 }
 
 #[post("/<ledger>/debit", data="<trans>")]
-fn debit(ledger: String, trans: Json<TransRequest>, data_dir: State<DataDir>) -> &'static str {
-    let mut path_buf = PathBuf::from(&data_dir.0);
-    path_buf.push(ledger);
+fn debit(ledger: String, trans: Json<TransRequest>, connections: State<LedgerConnections>) -> &'static str {
     let amount = trans.0.amount * -1;
-    do_transaction(path_buf.as_path(), amount, &trans.0.description);
+    let conn = connections.get_write(&ledger);
+    do_transaction(conn, amount, &trans.0.description);
     "ok"
 }
 
 #[post("/<ledger>/edit/<rowid>", data="<trans>")]
-fn edit_trans(ledger: String, rowid: i32, trans: Json<TransRequest>, data_dir: State<DataDir>) -> &'static str {
-    let mut path_buf = PathBuf::from(&data_dir.0);
-    path_buf.push(ledger);
-    let path = path_buf.as_path();
-    let mut conn = Connection::open(path).unwrap();
+fn edit_trans(ledger: String, rowid: i32, trans: Json<TransRequest>, connections: State<LedgerConnections>) -> &'static str {
+    let mut conn = connections.get_write(&ledger);
     let tx = conn.transaction().unwrap();
     let old_amount: i32 = tx.query_row(&format!("SELECT amount FROM ledger WHERE rowid = {}", rowid), &[], |row| {
         row.get(0)
@@ -92,17 +102,13 @@ fn edit_trans(ledger: String, rowid: i32, trans: Json<TransRequest>, data_dir: S
 }
 
 #[get("/<ledger>")]
-fn get_ledger(ledger: String, data_dir: State<DataDir>) -> Json<TransList> {
-    get_ledger_paged(ledger, PagingArgs{page: None, per_page: None}, data_dir)
+fn get_ledger(ledger: String, connections: State<LedgerConnections>) -> Json<TransList> {
+    get_ledger_paged(ledger, PagingArgs{page: None, per_page: None}, connections)
 }
 
 #[get("/<ledger>?<paging>")]
-fn get_ledger_paged(ledger: String, paging: PagingArgs, data_dir: State<DataDir>) -> Json<TransList> {
-    let mut path_buf = PathBuf::from(&data_dir.0);
-    path_buf.push(ledger);
-    let path = path_buf.as_path();
-    let conn = Connection::open(path).unwrap();
-
+fn get_ledger_paged(ledger: String, paging: PagingArgs, connections:State<LedgerConnections>) -> Json<TransList> {
+    let conn = connections.get_read(&ledger);
     let page = paging.page.unwrap_or(0);
     let per_page = paging.per_page.unwrap_or(20);
 
@@ -147,14 +153,8 @@ struct LedgerList {
 }
 
 #[get("/list")]
-fn list_ledgers(data_dir: State<DataDir>) -> Json<LedgerList> {
-    let dir = PathBuf::from(&data_dir.0);
-    let mut ledgers: Vec<String> = dir.read_dir().unwrap().filter_map(|entry| {
-        match entry {
-            Ok(file) => file.file_name().into_string().ok(),
-            _ => None
-        }
-    }).collect();
+fn list_ledgers(connections: State<LedgerConnections>) -> Json<LedgerList> {
+    let mut ledgers: Vec<String> = connections.map_lock.read().unwrap().keys().map(|s| {s.clone()}).collect();
     ledgers.sort_unstable();
     Json(LedgerList { ledgers: ledgers })
 }
@@ -175,6 +175,37 @@ fn service_worker() -> Option<NamedFile> {
 }
 
 struct DataDir(String);
+struct LedgerConnections {
+    map_lock: RwLock<HashMap<String, RwLock<ConnectionFactory>>>
+}
+
+impl LedgerConnections {
+    fn get_write(&self, ledger: &str) -> Connection {
+        let map = self.map_lock.read().unwrap();
+        let conn = map.get(ledger).unwrap().write().unwrap().get_write();
+        conn
+    }
+
+    fn get_read(&self, ledger: &str) -> Connection {
+        let map = self.map_lock.read().unwrap();
+        let conn = map.get(ledger).unwrap().read().unwrap().get_read();
+        conn
+    }
+}
+
+struct ConnectionFactory {
+    path: PathBuf,
+}
+
+impl ConnectionFactory {
+    fn get_write(&mut self) -> Connection {
+        Connection::open(&self.path).unwrap()
+    }
+
+    fn get_read(&self) -> Connection {
+        Connection::open_with_flags(&self.path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap()
+    }
+}
 
 fn main() {
     rocket::ignite()
@@ -201,22 +232,27 @@ fn main() {
                 .to_string();
             Ok(rocket.manage(DataDir(assets_dir)))
         }))
+        .attach(AdHoc::on_attach(|rocket| {
+            let assets_dir = rocket.config()
+                .get_str("data_dir")
+                .unwrap_or("ledgers/")
+                .to_string();
+            let dir = Path::new(&assets_dir);
+            let connections: HashMap<String, RwLock<ConnectionFactory>> = dir.read_dir().unwrap().filter_map(|entry| {
+                match entry {
+                    Ok(file) => Some((
+                        file.file_name().into_string().unwrap(), 
+                        RwLock::new(ConnectionFactory{path: file.path()})
+                    )),
+                    _ => None
+                }
+            }).collect();
+            Ok(rocket.manage(LedgerConnections{map_lock: RwLock::new(connections)}))
+        }))
         .launch();
 }
 
-fn do_init(path: &Path) {
-    let conn = Connection::open(path).unwrap();
-    conn.execute("CREATE TABLE ledger (
-                  amount       INTEGER NOT NULL,
-                  balance      INTEGER NOT NULL,
-                  description  TEXT NOT NULL,
-                  time_created INTEGER NOT NULL
-                  )", &[]).unwrap();
-    conn.execute("CREATE INDEX time_index on ledger(time_created)", &[]).unwrap();
-}
-
-fn do_transaction(path: &Path, amount: i32, description: &str) {
-    let conn = Connection::open(path).unwrap();
+fn do_transaction(conn: Connection, amount: i32, description: &str) {
     let balance = get_balance(&conn);
     conn.execute("INSERT INTO ledger (amount, balance, description, time_created)
                   VALUES (?1, ?2, ?3, ?4)",
@@ -228,3 +264,4 @@ fn get_balance(conn: &Connection) -> i32 {
         row.get(0)
     }).unwrap_or(0)
 }
+
