@@ -1,4 +1,4 @@
-var cacheName = 'ledgyPWA-0.1.4';
+var cacheName = 'ledgyPWA-0.1.5';
 var filesToCache = [
   "/",
   "/static/index.html",
@@ -11,6 +11,7 @@ var filesToCache = [
   "/static/external/bootstrap.min.js",
   "/static/external/jquery-3.3.1.slim.min.js",
   "/static/external/jquery-dateformat.min.js",
+  "/static/external/jscolor.js",
   "/static/external/popper.min.js",
 ];
 

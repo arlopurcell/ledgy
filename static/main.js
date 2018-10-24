@@ -3,6 +3,7 @@ var currentAccount = "spend";
 
 function selectAccount(account) {
     currentAccount = account;
+    reloadColors();
     reloadTransactions();
     clearTransactionForm();
     showTransactionFormPage(1);
@@ -242,6 +243,118 @@ function updateAccountsDisplay() {
         }
     });
     // TODO add "+" button
+    
+    var colorsTab = $("#colorsTab");
+    var colorsTabContent = $("#colorsTabContent");
+    colorsTab.empty();
+    colorsTabContent.empty();
+    accounts.forEach(function(account) {
+        var listItem = jQuery("<li/>", {class: "nav-item"});
+        listItem.appendTo(colorsTab);
+        var liLink = jQuery("<a/>", {
+            class: "nav-link",
+            id: `${account}-colors-tab`,
+            "data-toggle": "tab",
+            href: `#${account}Colors`,
+            role: "tab",
+            "aria-controls": `${account}Colors`,
+            "aria-selected": account == currentAccount,
+        });
+        liLink.appendTo(listItem);
+        liLink.html(account);
+        if (account == currentAccount) {
+            liLink.addClass("active");
+        }
+
+        var tabContent = jQuery("<div/>", {
+            class: "tab-pane fade",
+            id: `${account}Colors`,
+            role: "tabpanel",
+            "aria-labelledby": `${account}-colors-tab`,
+        });
+        tabContent.appendTo(colorsTabContent);
+        if (account == currentAccount) {
+            tabContent.addClass("show active");
+        }
+
+        Object.keys(DEFAULT_COLORS).forEach(function (type) {
+            var colorInput = createColorInput(account, type);
+            colorInput.appendTo(tabContent);
+        });
+    });
+}
+
+function createColorInput(account, type) {
+    var colorInputLabel = jQuery("<label/>");
+    colorInputLabel.append(`${type}: `);
+    var colorInput = jQuery("<input>", {
+        id: `${account}-${type}-color-input`,
+        class: "jscolor"
+    });
+    colorInput.appendTo(colorInputLabel);
+    var picker = new jscolor(colorInput.get(0), {
+        zIndex: 2000,
+    });
+
+    var color = getStoredColor(account, type);
+    picker.fromString(color);
+
+    return colorInputLabel;
+}
+
+function saveColors() {
+    var accountsString = window.localStorage.getItem("accounts");
+    var accounts = accountsString.split(",");
+    accounts.forEach(function(account) {
+        Object.keys(DEFAULT_COLORS).forEach(function (type) {
+            window.localStorage.setItem(`color-${account}-${type}`, $(`#${account}-${type}-color-input`).val());
+        });
+    });
+
+    reloadColors();
+}
+
+function reloadColors() {
+    $(".keypad-button").css("background-color", getStoredColor(currentAccount, "Button"));
+    $(".keypad-button").css("border-color", getStoredColor(currentAccount, "Button"));
+
+    $(".keypad-button").css("color", getStoredColor(currentAccount, "ButtonText"));
+
+    $("body").css("background-color", getStoredColor(currentAccount, "Background"));
+
+    $(".balance-line").css("color", getStoredColor(currentAccount, "Balance"));
+}
+
+function resetColors() {
+    var accountsString = window.localStorage.getItem("accounts");
+    var accounts = accountsString.split(",");
+    accounts.forEach(function(account) {
+        Object.keys(DEFAULT_COLORS).forEach(function (type) {
+            var colorInput = $(`#${account}-${type}-color-input`);
+            colorInput.val(DEFAULT_COLORS[type]);
+            colorInput.css("background-color", "#" + DEFAULT_COLORS[type]);
+        });
+    });
+}
+
+const DEFAULT_COLORS = {
+    "Button": "17a2b8",
+    "ButtonText": "ffffff",
+    "Background": "ffffff",
+    "Balance": "000000",
+}
+
+function getStoredColor(account, type) {
+    return "#" + getLocalStorageOrDefault(`color-${currentAccount}-${type}`, DEFAULT_COLORS[type]);
+}
+
+function getLocalStorageOrDefault(key, defaultVal) {
+    var value = window.localStorage.getItem(key);
+    if (value) {
+        return value;
+    } else {
+        return defaultVal;
+    }
 }
 
 function saveCredentials() {
@@ -291,6 +404,7 @@ window.onload = function() {
 
     reloadAccounts();
     reloadTransactions();
+    reloadColors();
     $("#amountInput").focus();
 
     if ('serviceWorker' in navigator) {
