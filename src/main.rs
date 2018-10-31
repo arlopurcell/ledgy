@@ -283,7 +283,6 @@ fn get_balance(conn: &Connection) -> i32 {
 }
 
 #[derive(Serialize, Deserialize)]
-//#[serde(tag = "schedule")] 
 enum CronSchedule {
     Weekly(Weekday),
     Monthly(u32),
@@ -383,6 +382,9 @@ fn main() {
                 let last_run_opt: Option<DateTime<Local>> = conn.query_row("SELECT date_time from cron_last_run", NO_PARAMS, 
                                                                            |row| {row.get(0)}
                                                                           ).ok();
+                if last_run_opt.is_none() {
+                    continue;
+                }
                 let mut cron_stmt = conn.prepare(
                     "SELECT type, idx, amount, description FROM crons"
                     ).unwrap();
@@ -397,12 +399,8 @@ fn main() {
                 for cron in crons {
                     let cron = cron.unwrap();
                     if cron.schedule.matches(&now) {
-                        if let Some(last_run) = last_run_opt {
-                            if !cron.schedule.matches(&last_run) {
-                                println!("Didn't match last");
-                                do_transaction(&conn, cron.amount, &cron.description);
-                            }
-                        } else {
+                        if !cron.schedule.matches(&last_run_opt.unwrap()) {
+                            println!("Didn't match last");
                             do_transaction(&conn, cron.amount, &cron.description);
                         }
                     }

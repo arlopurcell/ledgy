@@ -63,6 +63,7 @@
         <a class="nav-link" id="credits-tab" data-toggle="tab" href="#credits" role="tab" aria-controls="credits" aria-selected="false">
           Deposits
         </a>
+      </li>
       <li class="nav-item">
         <button class="nav-link btn btn-outline-danger hidden" id="edit-cancel" onclick="clearTransactionForm();">
           Cancel
@@ -115,9 +116,55 @@
           </div>
           <div id="transactionForm2" class="transactionFormPage" style="display: none;">
             <input type="text" class="form-control" id="descriptionInput" placeholder="Transaction description">
-            <div class="btn-group mr-2" role="group" aria-label="First group">
-              <button type="button" class="btn btn-secondary" onclick="showTransactionFormPage(1);">Back</button>
-              <button type="button" class="btn btn-primary transaction-button" onclick="sendTransaction();">Submit</button>
+            <div class="btn-group pb-2" role="group" aria-label="First group">
+              <button type="button" class="btn btn-secondary btn-lg" onclick="showTransactionFormPage(1);">Back</button>
+              <button type="button" class="btn btn-primary btn-lg transaction-button" onclick="addSubmit();">Submit</button>
+            </div>
+            <div class="btn-group d-block">
+              <button class="btn btn-tertiary btn-sm" type="button" data-toggle="collapse" data-target="#recurring" aria-expanded="false" aria-controls="recurring">
+                Recurring
+              </button>
+            </div>
+            <div class="collapse" id="recurring">
+              <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                <label class="btn btn-secondary active" onclick="showNoneCron();">
+                  <input type="radio" name="cron_type" id="cron_type_none" autocomplete="off" value="none" checked> None
+                </label>
+                <label class="btn btn-secondary" onclick="showWeeklyCron();">
+                  <input type="radio" name="cron_type" id="cron_type_weekly" value="weekly" autocomplete="off"> Weekly
+                </label>
+                <label class="btn btn-secondary" onclick="showMonthlyCron();">
+                  <input type="radio" name="cron_type" id="cron_type_monthly" value="monthly" autocomplete="off"> Monthly
+                </label>
+              </div>
+
+              <div id="weekly-cron-choice" class="btn-group btn-group-toggle" data-toggle="buttons" style="display: none;">
+                <label class="btn btn-primary">
+                  <input type="radio" name="cron_weekday" id="cron_weekday_mon" value="Mon" autocomplete="off"> Mon
+                </label>
+                <label class="btn btn-primary">
+                  <input type="radio" name="cron_weekday" id="cron_weekday_tue" value="Tue" autocomplete="off"> Tue
+                </label>
+                <label class="btn btn-primary">
+                  <input type="radio" name="cron_weekday" id="cron_weekday_wed" value="Wed" autocomplete="off"> Wed
+                </label>
+                <label class="btn btn-primary">
+                  <input type="radio" name="cron_weekday" id="cron_weekday_thu" value="Thu" autocomplete="off"> Thu
+                </label>
+                <label class="btn btn-primary">
+                  <input type="radio" name="cron_weekday" id="cron_weekday_fri" value="Fri" autocomplete="off"> Fri
+                </label>
+                <label class="btn btn-primary">
+                  <input type="radio" name="cron_weekday" id="cron_weekday_sat" value="Sat" autocomplete="off"> Sat
+                </label>
+                <label class="btn btn-primary">
+                  <input type="radio" name="cron_weekday" id="cron_weekday_sun" value="Sun" autocomplete="off"> Sun
+                </label>
+              </div>
+
+              <div id="monthly-cron-choice" style="display: none;">
+                <input type="number" class="form-control" id="cronMonthlyInput" placeholder="Day of each month">
+              </div>
             </div>
           </div>
         </div>

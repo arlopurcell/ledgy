@@ -27,6 +27,13 @@ function clearTransactionForm() {
     $("#amountInput").prop("placeholder", "Transaction amount");
     $("#rowidInput").val("");
     $("#descriptionInput").val("");
+
+    $("#recurring").collapse('hide');
+    $("#cron_type_none").prop("checked", true);
+    showNoneCron();
+    $("input[name='cron_weekday']").prop("checked", false);
+    $("#monthlyCronInput").val("");
+
     $("#edit-cancel").hide();
     $("#debits-tab").show();
     $("#credits-tab").show();
@@ -391,6 +398,79 @@ function keypadDelete() {
 function keypadEnter(transType) {
     $(`input[name='transType'][value='${transType}']`).prop("checked", true);
     showTransactionFormPage(2);
+}
+
+function addSubmit() {
+    var cron_type = $("input[name='cron_type']:checked").val();
+    if (cron_type == "none") {
+        sendTransaction();
+    } else {
+        // TODO edits
+        // var rowid = $("#rowidInput").val();
+        var type = $("input[name='transType']:checked").val();
+        var amount = $("#amountInput").val();
+        if (type == "debit") {
+            amount = amount * -1;
+        }
+        var description = $("#descriptionInput").val();
+
+        if (cron_type == "weekly") {
+            var schedule = {"Weekly": $("input[name='cron_weekday']:checked").val()};
+            // TODO if (!cron_val) show error
+        } else if (cron_type == "monthly") {
+            var schedule = {"Monthly": parseInt($("#cronMonthlyInput").val())};
+        }
+        // TODO else show error
+
+        // disable buttons
+        $(".transactionButton").prop("disabled", true);
+
+        var auth = window.localStorage.getItem("authorization");
+        if (!auth) {
+            $("#credsModal").modal();
+            return
+        }
+
+        fetch(API_BASE_URL + currentAccount + "/cron", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "Authorization": auth,
+            },
+            body: JSON.stringify({
+                amount: Math.trunc(amount * 100), 
+                description: description,
+                schedule: schedule,
+            })
+        }).then(function(response) {
+            if (response.ok) {
+                //$("#recurring-tab").tab("show");
+                reloadTransactions();
+                clearTransactionForm();
+                showTransactionFormPage(1);
+                $(".transactionButton").prop("disabled", false);
+            } else {
+                showTransactionError();
+            }
+        }).catch(function(error) {
+            showTransactionError();
+        });
+    }
+}
+
+function showNoneCron() {
+    $("#weekly-cron-choice").hide();
+    $("#monthly-cron-choice").hide();
+}
+
+function showWeeklyCron() {
+    $("#weekly-cron-choice").show();
+    $("#monthly-cron-choice").hide();
+}
+
+function showMonthlyCron() {
+    $("#weekly-cron-choice").hide();
+    $("#monthly-cron-choice").show();
 }
 
 window.onload = function() {
