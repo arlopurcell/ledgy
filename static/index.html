@@ -65,6 +65,11 @@
         </a>
       </li>
       <li class="nav-item">
+        <a class="nav-link" id="recurring-tab" data-toggle="tab" href="#recurring" role="tab" aria-controls="recurring" aria-selected="false">
+            ↺
+        </a>
+      </li>
+      <li class="nav-item">
         <button class="nav-link btn btn-outline-danger hidden" id="edit-cancel" onclick="clearTransactionForm();">
           Cancel
         </button>
@@ -121,11 +126,11 @@
               <button type="button" class="btn btn-primary btn-lg transaction-button" onclick="addSubmit();">Submit</button>
             </div>
             <div class="btn-group d-block">
-              <button class="btn btn-tertiary btn-sm" type="button" data-toggle="collapse" data-target="#recurring" aria-expanded="false" aria-controls="recurring">
+              <button class="btn btn-tertiary btn-sm" type="button" data-toggle="collapse" data-target="#recurring-form" aria-expanded="false" aria-controls="recurring-form">
                 Recurring
               </button>
             </div>
-            <div class="collapse" id="recurring">
+            <div class="collapse" id="recurring-form">
               <div class="btn-group btn-group-toggle" data-toggle="buttons">
                 <label class="btn btn-secondary active" onclick="showNoneCron();">
                   <input type="radio" name="cron_type" id="cron_type_none" autocomplete="off" value="none" checked> None
@@ -194,6 +199,11 @@
           <tbody id="depositsTableBody">
           </tbody>
         </table>
+      </div>
+
+      <div class="tab-pane fade" id="recurring" role="tabpanel" aria-labelledby="recurring-tab">
+        <div id="recurring-container">
+        </div>
       </div>
     </div>
 

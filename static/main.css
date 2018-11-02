@@ -49,3 +49,12 @@
 .transactionTable thead tr {
     display:block;
 }
+
+.cron-card {
+    margin: 5px;
+}
+
+.cron-amount {
+    display: inline-block;
+    width: 20vw;
+}

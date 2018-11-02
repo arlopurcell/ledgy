@@ -188,6 +188,125 @@ function reloadTransactions() {
             $(".loader").hide();
         });
     });
+
+    reloadCrons();
+}
+
+function reloadCrons() {
+    var auth = window.localStorage.getItem("authorization");
+    if (!auth) {
+        $("#credsModal").modal();
+        return
+    }
+
+    fetch(API_BASE_URL + currentAccount + "/crons", {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            "Authorization": auth,
+        },
+    }).then(function(response) {
+        return response.json();
+    }).then(function(data) {
+        var container = $("#recurring-container");
+        container.empty();
+        data.crons.forEach(function(cron) {
+            var schedule;
+            if (cron.spec.schedule.Weekly) {
+                schedule = "Weekly on " + full_weekday_of(cron.spec.schedule.Weekly) + "s";
+            } else if (cron.spec.schedule.Monthly) {
+                schedule = "Monthly on the " + ordinal_suffix_of(cron.spec.schedule.Monthly);
+            } else {
+                schedule = "Unknown schedule: " + cron.spec.schedule;
+            }
+            var card = jQuery(`
+                <div class="card cron-card" id="cron-id-${cron.rowid}">
+                  <div class="card-header">
+                    <h5>${schedule}</h5>
+                  </div>
+                  <div class="card-body">
+                    <p class="card-text">
+                        <span class="cron-amount">\$${(cron.spec.amount / 100).toFixed(2)}</span>
+                        <span>${cron.spec.description}</span>
+                    </p>
+                  </div>
+                </div>
+            `);
+            card.appendTo(container);
+            card.popover({
+                placement: "bottom",
+                html: true,
+                title: "Delete recurring job?",
+                content: `
+                    <button 
+                        class="btn btn-small btn-secondary" 
+                        onclick="$('#cron-id-${cron.rowid}').popover('hide');">
+                        No
+                    </button>
+                    <button 
+                        class="btn btn-small btn-danger" 
+                        onclick="deleteCron(${cron.rowid});">
+                        Yes
+                    </button>
+                `
+            });
+        });
+    });
+}
+
+function full_weekday_of(abbrev) {
+    switch(abbrev) {
+        case "Mon":
+            return "Monday";
+        case "Tue":
+            return "Tuesday";
+        case "Wed":
+            return "Wednesday";
+        case "Thu":
+            return "Thursday";
+        case "Fri":
+            return "Friday";
+        case "Sat":
+            return "Saturday";
+        case "Sun":
+            return "Sunday";
+        default:
+            return abbrev;
+    }
+}
+
+function ordinal_suffix_of(i) {
+    var j = i % 10,
+        k = i % 100;
+    if (j == 1 && k != 11) {
+        return i + "st";
+    }
+    if (j == 2 && k != 12) {
+        return i + "nd";
+    }
+    if (j == 3 && k != 13) {
+        return i + "rd";
+    }
+    return i + "th";
+}
+
+function deleteCron(rowid) {
+    $("#cron-id-" + rowid).popover('hide');
+    var auth = window.localStorage.getItem("authorization");
+    if (!auth) {
+        $("#credsModal").modal();
+        return
+    }
+
+    fetch(`${API_BASE_URL}/${currentAccount}/cron/${rowid}` , {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            "Authorization": auth,
+        }
+    }).then(function(response) {
+        reloadCrons();
+    });
 }
 
 function editTransaction(rowid, old_amount, old_description) {
