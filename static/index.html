@@ -33,6 +33,7 @@
         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
           <a class="dropdown-item" href="#" onclick="$('#colorsModal').modal();">Select Colors</a>
           <a class="dropdown-item" href="#" onclick="$('#credsModal').modal();">Enter Credentials</a>
+          <a class="dropdown-item" href="#" onclick="$('#createAccountModal').modal();">Create Ledger</a>
         </div>
       </div>
     </div>
@@ -221,6 +222,23 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
             <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="saveCredentials();">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="createAccountModal" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Create Account</h5>
+          </div>
+          <div class="modal-body">
+            <input type="text" id="accountNameInput" placeholder="account name">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="createAccount();">Create</button>
           </div>
         </div>
       </div>

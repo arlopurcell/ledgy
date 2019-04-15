@@ -4,12 +4,12 @@ version = "0.1.7"
 authors = ["arlo <arlo@indeed.com>"]
 
 [dependencies]
-chrono = { version = "0.4", features = ["serde"] }
-rocket = "0.3.17"
-rocket_codegen = "0.3.17"
-rocket_contrib = "0.3.17"
-rusqlite = { version = "0.15.0", features = ["chrono"] }
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
-time = "0.1.0"
+chrono = { version = "*", features = ["serde"] }
+rocket = "*"
+rocket_codegen = "*"
+rocket_contrib = "*"
+rusqlite = { version = "*", features = ["chrono"] }
+serde = "*"
+serde_derive = "*"
+serde_json = "*"
+time = "*"

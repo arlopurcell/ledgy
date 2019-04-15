@@ -49,7 +49,7 @@ function sendTransaction() {
     var description = $("#descriptionInput").val();
 
     // disable buttons
-    $(".transactionButton").prop("disabled", true);
+    $(".transaction-button").prop("disabled", true);
     
     var auth = window.localStorage.getItem("authorization");
     if (!auth) {
@@ -77,7 +77,7 @@ function sendTransaction() {
             reloadTransactions();
             clearTransactionForm();
             showTransactionFormPage(1);
-            $(".transactionButton").prop("disabled", false);
+            $(".transaction-button").prop("disabled", false);
         } else {
             showTransactionError();
         }
@@ -96,7 +96,7 @@ function showTransactionError() {
             </button>
         </div>
     `);
-    $(".transactionButton").prop("disabled", false);
+    $(".transaction-button").prop("disabled", false);
 }
 
 function reloadTransactions() {
@@ -140,7 +140,7 @@ function reloadTransactions() {
                         </button>
                         <button 
                             class="btn btn-small btn-primary" 
-                            onclick="editTransaction(${transaction.rowid}, ${transaction.amount}, '${transaction.description}');">
+                            onclick="editTransaction(${transaction.rowid}, ${transaction.amount}, '${transaction.description.replace(/\\([\s\S])|(')/g,"\\$1$2")}');">
                             Yes
                         </button>
                     `
@@ -368,8 +368,7 @@ function updateAccountsDisplay() {
             input.prop("checked", true);
         }
     });
-    // TODO add "+" button
-    
+
     var colorsTab = $("#colorsTab");
     var colorsTabContent = $("#colorsTabContent");
     colorsTab.empty();
@@ -493,6 +492,33 @@ function saveCredentials() {
     reloadTransactions();
 }
 
+function createAccount() {
+    var auth = window.localStorage.getItem("authorization");
+    if (!auth) {
+        $("#credsModal").modal();
+        return
+    }
+
+    var accountName = $("#accountNameInput").val();
+    $("#accountNameInput").val("");
+    fetch(API_BASE_URL + accountName + "/init", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            "Authorization": auth,
+        },
+    }).then(function(response) {
+        if (response.ok) {
+            reloadAccounts();
+            reloadTransactions();
+        } else {
+            showTransactionError();
+        }
+    }).catch(function(error) {
+        showTransactionError();
+    });
+}
+
 function keypadType(input) {
     var amountInput = $("#amountInput");
     var current = amountInput.val();
@@ -542,7 +568,7 @@ function addSubmit() {
         // TODO else show error
 
         // disable buttons
-        $(".transactionButton").prop("disabled", true);
+        $(".transaction-button").prop("disabled", true);
 
         var auth = window.localStorage.getItem("authorization");
         if (!auth) {
@@ -567,7 +593,7 @@ function addSubmit() {
                 reloadTransactions();
                 clearTransactionForm();
                 showTransactionFormPage(1);
-                $(".transactionButton").prop("disabled", false);
+                $(".transaction-button").prop("disabled", false);
             } else {
                 showTransactionError();
             }

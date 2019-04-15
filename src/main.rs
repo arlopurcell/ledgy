@@ -1,6 +1,6 @@
-#![feature(plugin, custom_derive)]
-#![plugin(rocket_codegen)]
-extern crate rocket;
+#![feature(proc_macro_hygiene, decl_macro)]
+
+#[macro_use] extern crate rocket;
 extern crate rocket_contrib;
 #[macro_use] extern crate serde_derive;
 extern crate rusqlite;
@@ -8,7 +8,7 @@ extern crate chrono;
 
 use rusqlite::{Connection, OpenFlags, NO_PARAMS};
 use rusqlite::types::ToSql;
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 use rocket::response::NamedFile;
 use rocket::request::State;
 use rocket::fairing::AdHoc;
@@ -41,12 +41,6 @@ struct TransList {
     debits: Vec<TransResponse>,
     credits: Vec<TransResponse>,
     balance: i32
-}
-
-#[derive(FromForm)]
-struct PagingArgs {
-    page: Option<usize>,
-    per_page: Option<usize>,
 }
 
 #[post("/<ledger>/init")]
@@ -144,13 +138,13 @@ fn get_crons(ledger: String, connections: State<LedgerConnections>) -> Json<Cron
         "SELECT rowid, type, idx, amount, description FROM crons"
         ).unwrap();
     let crons: Vec<CronResponse> = cron_stmt.query_map(NO_PARAMS, |row| {
-        let cron_type: String = row.get(1);
+        let cron_type: String = row.get(1).unwrap();
         let spec = CronSpec {
-            schedule: CronSchedule::from_sql(&cron_type, row.get(2)).unwrap(),
-            amount: row.get(3),
-            description: row.get(4),
+            schedule: CronSchedule::from_sql(&cron_type, row.get(2).unwrap()).unwrap(),
+            amount: row.get(3).unwrap(),
+            description: row.get(4).unwrap(),
         };
-        CronResponse { rowid: row.get(0), spec }
+        Ok(CronResponse { rowid: row.get(0).unwrap(), spec })
     }).unwrap().map(|result| {result.unwrap()}).collect();
     Json(CronList {crons:crons})
 }
@@ -165,39 +159,39 @@ fn delete_cron(ledger:String, rowid: i32, connections: State<LedgerConnections>)
 
 #[get("/<ledger>")]
 fn get_ledger(ledger: String, connections: State<LedgerConnections>) -> Json<TransList> {
-    get_ledger_paged(ledger, PagingArgs{page: None, per_page: None}, connections)
+    get_ledger_paged(ledger, None, None, connections)
 }
 
-#[get("/<ledger>?<paging>")]
-fn get_ledger_paged(ledger: String, paging: PagingArgs, connections:State<LedgerConnections>) -> Json<TransList> {
+#[get("/<ledger>?<page>&<per_page>")]
+fn get_ledger_paged(ledger: String, page: Option<usize>, per_page: Option<usize>, connections:State<LedgerConnections>) -> Json<TransList> {
     let conn = connections.get_read(&ledger);
-    let page = paging.page.unwrap_or(0);
-    let per_page = paging.per_page.unwrap_or(20);
+    let page = page.unwrap_or(0);
+    let per_page = per_page.unwrap_or(20);
 
     let mut debit_stmt = conn.prepare(
         "SELECT amount, balance, description, time_created, rowid FROM ledger WHERE amount < 0 ORDER BY time_created DESC"
     ).unwrap();
     let debits = debit_stmt.query_map(NO_PARAMS, |row| {
-        TransResponse {
-            amount: row.get(0),
-            balance: row.get(1),
-            description: row.get(2),
-            time: row.get(3),
-            rowid: row.get(4),
-        }
+        Ok(TransResponse {
+            amount: row.get(0).unwrap(),
+            balance: row.get(1).unwrap(),
+            description: row.get(2).unwrap(),
+            time: row.get(3).unwrap(),
+            rowid: row.get(4).unwrap(),
+        })
     }).unwrap().map(|trans_result| {trans_result.unwrap()}).skip(page * per_page).take(per_page);
 
     let mut credit_stmt = conn.prepare(
         "SELECT amount, balance, description, time_created, rowid FROM ledger WHERE amount > 0 ORDER BY time_created DESC"
     ).unwrap();
     let credits = credit_stmt.query_map(NO_PARAMS, |row| {
-        TransResponse {
-            amount: row.get(0),
-            balance: row.get(1),
-            description: row.get(2),
-            time: row.get(3),
-            rowid: row.get(4),
-        }
+        Ok(TransResponse {
+            amount: row.get(0).unwrap(),
+            balance: row.get(1).unwrap(),
+            description: row.get(2).unwrap(),
+            time: row.get(3).unwrap(),
+            rowid: row.get(4).unwrap(),
+        })
     }).unwrap().map(|trans_result| {trans_result.unwrap()}).skip(page * per_page).take(per_page);
 
     let balance = get_balance(&conn);
@@ -349,7 +343,7 @@ fn main() {
                 get_crons,
                 delete_cron,
                ])
-        .attach(AdHoc::on_attach(|rocket| {
+        .attach(AdHoc::on_attach("Data dir config", |rocket| {
             let assets_dir = rocket.config()
                 .get_str("data_dir")
                 .unwrap_or("ledgers/")
@@ -389,12 +383,12 @@ fn main() {
                     "SELECT type, idx, amount, description FROM crons"
                     ).unwrap();
                 let crons = cron_stmt.query_map(NO_PARAMS, |row| {
-                    let cron_type: String = row.get(0);
-                    CronSpec {
-                        schedule: CronSchedule::from_sql(&cron_type, row.get(1)).unwrap(),
-                        amount: row.get(2),
-                        description: row.get(3),
-                    }
+                    let cron_type: String = row.get(0).unwrap();
+                    Ok(CronSpec {
+                        schedule: CronSchedule::from_sql(&cron_type, row.get(1).unwrap()).unwrap(),
+                        amount: row.get(2).unwrap(),
+                        description: row.get(3).unwrap(),
+                    })
                 }).unwrap();
                 for cron in crons {
                     let cron = cron.unwrap();
@@ -410,7 +404,7 @@ fn main() {
             thread::sleep(six_hours);
         }
     });
-    rocket.attach(AdHoc::on_attach(move |rocket| {
+    rocket.attach(AdHoc::on_attach("Connection locker", move |rocket| {
         Ok(rocket.manage(LedgerConnections{map_lock: Arc::clone(&super_lock)}))
     })).launch();
 }
