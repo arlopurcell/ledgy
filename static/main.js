@@ -123,73 +123,94 @@ function reloadTransactions() {
             // replace contents of $("#transactionContainer)
             var container = $("#depositsTableBody");
             container.empty();
-            data.credits.forEach(function(transaction) {
-                var row = jQuery('<tr/>', {
-                    id: `transaction-id-${transaction.rowid}`,
-                });
-                row.appendTo(container);
-                row.popover({
-                    placement: "bottom",
-                    html: true,
-                    title: "Edit Transaction?",
-                    content: `
-                        <button 
-                            class="btn btn-small btn-secondary" 
-                            onclick="$('#transaction-id-${transaction.rowid}').popover('hide');">
-                            No
-                        </button>
-                        <button 
-                            class="btn btn-small btn-primary" 
-                            onclick="editTransaction(${transaction.rowid}, ${transaction.amount}, '${transaction.description.replace(/\\([\s\S])|(')/g,"\\$1$2")}');">
-                            Yes
-                        </button>
-                    `
-                });
-                var amount_part = jQuery('<td/>', {class: "transaction-amount"}); 
-                amount_part.appendTo(row);
-                amount_part.text("$" + (transaction.amount / 100).toFixed(2));
-                var description_part = jQuery('<td/>', {class: "transaction-description"}); 
-                description_part.appendTo(row);
-                description_part.text(transaction.description);
-            });
+            var button = jQuery(`
+                <button id="load-more-credits" type="button" class="btn btn-sm btn-primary" onclick="loadMore(false)" next-page="1">Load More</button>
+            `);
+            button.appendTo(container);
+            addTransactionsBefore(false, button, data.credits);
+            //$("#load-more-credits").attr("next-page", 1);
 
             container = $("#withdrawalsTableBody");
             container.empty();
-            data.debits.forEach(function(transaction) {
-                var row = jQuery('<tr/>', {
-                    id: `transaction-id-${transaction.rowid}`,
-                });
-                row.appendTo(container);
-                row.popover({
-                    placement: "bottom",
-                    html: true,
-                    title: "Edit Transaction?",
-                    content: `
-                        <button 
-                            class="btn btn-small btn-secondary" 
-                            onclick="$('#transaction-id-${transaction.rowid}').popover('hide');">
-                            No
-                        </button>
-                        <button 
-                            class="btn btn-small btn-primary" 
-                            onclick="editTransaction(${transaction.rowid}, ${transaction.amount}, '${transaction.description}');">
-                            Yes
-                        </button>
-                    `
-                });
-                var amount_part = jQuery('<td/>', {class: "transaction-amount"}); 
-                amount_part.appendTo(row);
-                var amount = transaction.amount * -1;
-                amount_part.text("$" + (amount / 100).toFixed(2));
-                var description_part = jQuery('<td/>', {class: "transaction-description"}); 
-                description_part.appendTo(row);
-                description_part.text(transaction.description);
-            });
+            button = jQuery(`
+                <button id="load-more-debits" type="button" class="btn btn-sm btn-primary" onclick="loadMore(true)" next-page="1">Load More</button>
+            `);
+            button.appendTo(container);
+            addTransactionsBefore(true, button, data.debits);
+            $("#load-more-debits").attr("next-page", 1);
+            
             $(".loader").hide();
         });
     });
 
     reloadCrons();
+}
+
+function loadMore(isDebits) {
+    var auth = window.localStorage.getItem("authorization");
+    if (!auth) {
+        $("#credsModal").modal();
+        return
+    }
+
+    var loadMoreButton = isDebits ? $("#load-more-debits") : $("#load-more-credits");
+    var nextPage = loadMoreButton.attr("next-page");
+    loadMoreButton.prop("disabled", true);
+    fetch(API_BASE_URL + currentAccount + "?per_page=20&page=" + nextPage, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            "Authorization": auth,
+        },
+    }).then(function(response) {
+        if (response.ok) {
+            response.json().then(function(data) {
+                var transactions = isDebits ? data.debits : data.credits;
+                if (transactions.length) {
+                    var container = isDebits ? $("#withdrawalsTableBody") : $("#depositsTableBody");
+                    addTransactionsBefore(isDebits, loadMoreButton, transactions);
+                    container.scrollTop(container[0].scrollHeight);
+                    loadMoreButton.attr("next-page", parseInt(nextPage) + 1);
+                    loadMoreButton.prop("disabled", false);
+                }
+            });
+        } else {
+            loadMoreButton.prop("disabled", false);
+        }
+    });
+}
+
+function addTransactionsBefore(isDebits, sibling, transactions) {
+    transactions.forEach(function(transaction) {
+        var row = jQuery('<tr/>', {
+            id: `transaction-id-${transaction.rowid}`,
+        });
+        row.insertBefore(sibling);
+        row.popover({
+            placement: "bottom",
+            html: true,
+            title: "Edit Transaction?",
+            content: `
+            <button 
+            class="btn btn-small btn-secondary" 
+            onclick="$('#transaction-id-${transaction.rowid}').popover('hide');">
+            No
+            </button>
+            <button 
+            class="btn btn-small btn-primary" 
+            onclick="editTransaction(${transaction.rowid}, ${transaction.amount}, '${transaction.description.replace(/\\([\s\S])|(')/g,"\\$1$2")}');">
+            Yes
+            </button>
+            `
+        });
+        var amount_part = jQuery('<td/>', {class: "transaction-amount"}); 
+        amount_part.appendTo(row);
+        var amount = isDebits ? transaction.amount * -1 : transaction.amount;
+        amount_part.text("$" + (amount / 100).toFixed(2));
+        var description_part = jQuery('<td/>', {class: "transaction-description"}); 
+        description_part.appendTo(row);
+        description_part.text(transaction.description);
+    });
 }
 
 function reloadCrons() {

@@ -40,14 +40,18 @@
 }
 
 .transactionTable tbody {
-    display:block;
-    overflow:auto;
+    display: block;
+    overflow: auto;
     height: calc(100vh - 160px);
-    width:100%;
+    width: 100%;
 }
 
 .transactionTable thead tr {
     display:block;
+}
+
+.transactionTable button {
+    margin-left: 5px;
 }
 
 .cron-card {
